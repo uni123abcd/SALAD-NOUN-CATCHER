@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Salad Chef: Year 6 Noun Catcher Game</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Tone.js for cheerful, accessible sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Load Font Awesome for friendly icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Lexend & Fredoka fonts (Lexend aids readability for SEN/dyslexic learners) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            background: linear-gradient(135deg, #ecfdf5 0%, #fef9c3 100%);
+            color: #1e293b;
+            user-select: none;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        h1, h2, h3, .fun-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        /* Game Kitchen Arena Canvas Styling */
+        #game-arena {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: linear-gradient(180deg, #e0f2fe 0%, #f0fdf4 68%, #fde68a 68%, #f59e0b 100%);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.06), 0 12px 25px -5px rgba(22, 101, 52, 0.18);
+            border: 4px solid #16a34a;
+            cursor: ew-resize;
+            touch-action: none;
+        }
+
+        @media (min-width: 640px) {
+            #game-arena {
+                height: 490px;
+            }
+        }
+
+        /* Wooden Kitchen Countertop Texture Strip */
+        .kitchen-counter {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 32%;
+            background: repeating-linear-gradient(
+                90deg,
+                #d97706 0px,
+                #d97706 60px,
+                #b45309 60px,
+                #b45309 63px
+            );
+            border-top: 6px solid #78350f;
+            pointer-events: none;
+        }
+
+        /* Falling Ingredient Bubble */
+        .falling-item {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: #ffffff;
+            border: 3px solid #334155;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+            will-change: top, left;
+            z-index: 15;
+            min-width: 105px;
+        }
+
+        /* Player Salad Bowl */
+        #player-bowl {
+            position: absolute;
+            bottom: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 135px;
+            height: 82px;
+            z-index: 20;
+            pointer-events: none;
+            transition: transform 0.08s ease-out;
+        }
+
+        @media (min-width: 640px) {
+            #player-bowl {
+                width: 160px;
+                height: 92px;
+            }
+        }
+
+        .bowl-bounce {
+            animation: bowlSquish 0.3s ease;
+        }
+
+        .bowl-shake {
+            animation: bowlShake 0.35s ease;
+        }
+
+        @keyframes bowlSquish {
+            0% { transform: translateX(-50%) scale(1, 1); }
+            40% { transform: translateX(-50%) scale(1.18, 0.85); }
+            100% { transform: translateX(-50%) scale(1, 1); }
+        }
+
+        @keyframes bowlShake {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            25% { transform: translateX(calc(-50% - 8px)) rotate(-6deg); }
+            75% { transform: translateX(calc(-50% + 8px)) rotate(6deg); }
+        }
+
+        /* Floating Score Popups (+10 / Try Again) */
+        .floating-popup {
+            position: absolute;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            font-size: 1.35rem;
+            pointer-events: none;
+            z-index: 30;
+            animation: floatUpFade 0.9s ease-out forwards;
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes floatUpFade {
+            0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
+            40% { opacity: 1; transform: translate(-50%, -25px) scale(1.15); }
+            100% { opacity: 0; transform: translate(-50%, -55px) scale(1); }
+        }
+
+        /* Tactile 3D Primary School Buttons */
+        .btn-3d {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .btn-3d:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.25) !important;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-pop {
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Print styles for Certificate */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #certificate-printable, #certificate-printable * {
+                visibility: visible;
+            }
+            #certificate-printable {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                box-shadow: none !important;
+                border: 8px solid #16a34a !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Header & Live Score Tracker -->
+    <header class="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <!-- Game Logo & Title -->
+            <div class="flex items-center gap-2.5">
+                <div class="bg-white text-green-600 w-11 h-11 rounded-2xl flex items-center justify-center text-2xl shadow-md">
+                    🥗
+                </div>
+                <div>
+                    <span class="inline-block bg-green-900/50 text-green-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        Year 6 English • Nouns
+                    </span>
+                    <h1 class="text-lg sm:text-2xl font-bold leading-tight">
+                        Salad Chef: Noun Catcher
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Score, Round Tracker & Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Student Name Input -->
+                <div class="hidden lg:flex items-center bg-white/15 rounded-xl px-3 py-1.5 border border-white/25">
+                    <i class="fa-solid fa-user-graduate text-green-200 mr-2"></i>
+                    <input type="text" id="student-name-header" placeholder="Chef's Name..."
+                           class="bg-transparent text-white placeholder-green-100 text-sm font-medium focus:outline-none w-32"
+                           oninput="syncStudentName(this.value)">
+                </div>
+
+                <!-- Score Pill -->
+                <div class="bg-amber-400 text-slate-900 px-3 py-1.5 rounded-2xl font-bold flex items-center gap-1.5 shadow-sm border-b-4 border-amber-600 text-sm sm:text-base">
+                    <i class="fa-solid fa-star text-amber-700"></i>
+                    <span>Score: <span id="score-display">0</span></span>
+                </div>
+
+                <!-- Round Progress Pill (1 to 15) -->
+                <div class="bg-white text-emerald-900 px-3 py-1.5 rounded-2xl font-bold flex items-center gap-1.5 shadow-sm border-b-4 border-emerald-200 text-sm sm:text-base">
+                    <i class="fa-solid fa-utensils text-emerald-600"></i>
+                    <span>Noun: <span id="round-display">1</span> / 15</span>
+                </div>
+
+                <!-- SEN Speed Toggle (Calm / Normal) -->
+                <button id="speed-toggle-btn" onclick="toggleCalmMode()" title="Toggle Calm Slow Speed for SEN Support"
+                        class="bg-sky-500 hover:bg-sky-600 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm flex items-center gap-1.5 shadow-sm transition">
+                    <i class="fa-solid fa-feather"></i>
+                    <span id="speed-label">Calm Speed</span>
+                </button>
+
+                <!-- Sound Toggle -->
+                <button id="sound-toggle-btn" onclick="toggleSound()" title="Toggle Sound Effects"
+                        class="bg-white/20 hover:bg-white/30 text-white p-2.5 rounded-xl transition flex items-center justify-center">
+                    <i id="sound-icon" class="fa-solid fa-volume-high text-base"></i>
+                </button>
+
+                <!-- Restart Button -->
+                <button onclick="openRestartModal()"
+                        class="btn-3d bg-rose-500 hover:bg-rose-600 text-white font-bold px-3 py-2 rounded-xl shadow-[0_4px_0_#be123c] flex items-center gap-1.5 text-xs sm:text-sm">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Restart</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Visual Progress Bar -->
+        <div class="w-full bg-green-950/40 h-2.5">
+            <div id="progress-bar" class="bg-amber-400 h-2.5 transition-all duration-500 rounded-r-full" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="max-w-6xl mx-auto w-full px-3 sm:px-5 py-3 flex-1 flex flex-col gap-3">
+
+        <!-- Recipe Order Mission Card (Current Question / Target Noun Clue) -->
+        <div class="bg-white rounded-3xl p-3.5 sm:p-4 shadow-md border-4 border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3.5 text-center sm:text-left">
+                <div id="mission-badge" class="bg-amber-100 border-2 border-amber-400 text-amber-900 font-extrabold rounded-2xl px-3.5 py-2 text-center shrink-0">
+                    <span class="block text-[10px] uppercase tracking-wider text-amber-700">Order</span>
+                    <span id="mission-number" class="text-xl sm:text-2xl fun-font">#1</span>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-0.5">
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                            🎯 Catch the matching SALAD NOUN!
+                        </span>
+                        <span id="grammar-tip-pill" class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                            Dodge Verbs & Adjectives!
+                        </span>
+                    </div>
+                    <p id="mission-clue-text" class="text-base sm:text-xl font-bold text-slate-800 leading-snug">
+                        Press "Start Cooking!" to catch your first salad noun!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Read Aloud Button (SEN Audio Support) -->
+            <button onclick="speakMissionClue()"
+                    class="btn-3d shrink-0 bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2.5 rounded-2xl shadow-[0_4px_0_#0369a1] flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-volume-up text-base"></i>
+                <span>Read Clue</span>
+            </button>
+        </div>
+
+        <!-- Instant Feedback Banner -->
+        <div id="feedback-banner" class="bg-white/95 border-2 border-emerald-200 rounded-2xl px-4 py-2 shadow-xs flex items-center justify-between gap-2 transition-all duration-300">
+            <div class="flex items-center gap-2.5">
+                <span id="feedback-emoji" class="text-2xl">👨‍🍳</span>
+                <p id="feedback-text" class="text-sm sm:text-base font-semibold text-slate-700">
+                    Move your salad bowl left and right using Arrow Keys, Mouse, Touch, or the big buttons below!
+                </p>
+            </div>
+            <div id="streak-badge" class="hidden bg-orange-100 border border-orange-300 text-orange-800 px-3 py-1 rounded-xl text-xs font-bold shrink-0">
+                🔥 Streak: <span id="streak-count">0</span>
+            </div>
+        </div>
+
+        <!-- Interactive Arcade Kitchen Arena -->
+        <div id="game-arena">
+            <!-- Kitchen Decorative Window & Shelves -->
+            <div class="absolute top-4 left-6 bg-white/70 border-4 border-white rounded-2xl w-24 h-20 hidden sm:flex items-center justify-center text-3xl shadow-xs pointer-events-none">
+                ☀️🌿
+            </div>
+            <div class="absolute top-4 right-6 bg-white/70 border-4 border-white rounded-2xl px-3 py-1.5 hidden sm:flex items-center gap-2 text-xs font-bold text-emerald-800 shadow-xs pointer-events-none">
+                <span>🧺 Bowl Ingredients:</span>
+                <span id="caught-emojis-strip" class="text-base tracking-widest">🥗</span>
+            </div>
+
+            <!-- Wooden Countertop -->
+            <div class="kitchen-counter"></div>
+
+            <!-- Player Salad Bowl (Custom SVG + Stacked Caught Ingredients) -->
+            <div id="player-bowl">
+                <!-- Visual pile of caught ingredients inside the bowl -->
+                <div id="bowl-pile" class="absolute -top-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-0.5 text-2xl sm:text-3xl pointer-events-none">
+                </div>
+                <!-- Illustrated Salad Bowl SVG -->
+                <svg viewBox="0 0 180 100" class="w-full h-full drop-shadow-lg">
+                    <!-- Bowl Rim -->
+                    <ellipse cx="90" cy="24" rx="84" ry="14" fill="#fef3c7" stroke="#b45309" stroke-width="4" />
+                    <ellipse cx="90" cy="24" rx="74" ry="9" fill="#dcfce7" />
+                    <!-- Bowl Body -->
+                    <path d="M8,24 Q14,92 90,92 Q166,92 172,24 Z" fill="#f97316" stroke="#9a3412" stroke-width="4" />
+                    <!-- Decorative Stripes on Bowl -->
+                    <path d="M22,48 Q90,62 158,48" fill="none" stroke="#fed7aa" stroke-width="5" stroke-linecap="round" />
+                    <circle cx="90" cy="70" r="10" fill="#fef08a" />
+                    <text x="90" y="74" text-anchor="middle" font-size="12" font-weight="bold" fill="#9a3412">NOUNS</text>
+                </svg>
+            </div>
+
+            <!-- Start / Welcome Overlay Inside Arena -->
+            <div id="start-overlay" class="absolute inset-0 bg-slate-900/55 backdrop-blur-xs z-30 flex items-center justify-center p-4">
+                <div class="bg-white rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl border-4 border-emerald-400 animate-pop">
+                    <div class="text-5xl mb-2">🥗👨‍🍳</div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-emerald-800 mb-2">
+                        Welcome to the Salad Kitchen!
+                    </h2>
+                    <p class="text-slate-600 text-sm sm:text-base mb-4 leading-relaxed">
+                        Read each recipe order and catch the matching <strong>Salad Noun</strong> (person, place, or thing) in your bowl! Watch out for <strong>verbs</strong> (action words) and <strong>adjectives</strong> (describing words)!
+                    </p>
+                    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mb-5 text-xs sm:text-sm text-emerald-900 font-medium">
+                        ✅ <strong>15 Salad Nouns</strong> to catch &nbsp;•&nbsp; 🏆 <strong>Master Chef Badge</strong> at the end!
+                    </div>
+                    <button onclick="startGame()"
+                            class="btn-3d w-full bg-emerald-500 hover:bg-emerald-600 text-white text-lg sm:text-xl font-bold py-3.5 px-6 rounded-2xl shadow-[0_5px_0_#047857] flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Start Cooking!</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tactile Mobile / SEN Accessible Movement Pad (Outside Canvas) -->
+        <div class="flex items-center justify-center gap-4 pt-1">
+            <button id="btn-move-left"
+                    onpointerdown="startButtonMove(-1)" onpointerup="stopButtonMove()" onpointerleave="stopButtonMove()"
+                    class="btn-3d flex-1 max-w-[210px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3.5 px-6 rounded-2xl shadow-[0_5px_0_#065f46] flex items-center justify-center gap-2 text-lg">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+                <span>Move Left</span>
+            </button>
+
+            <div class="hidden sm:flex flex-col items-center text-xs text-slate-500 font-semibold px-2 text-center">
+                <span>Use ⬅️ ➡️ Arrow Keys</span>
+                <span>or Drag / Tap Buttons</span>
+            </div>
+
+            <button id="btn-move-right"
+                    onpointerdown="startButtonMove(1)" onpointerup="stopButtonMove()" onpointerleave="stopButtonMove()"
+                    class="btn-3d flex-1 max-w-[210px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3.5 px-6 rounded-2xl shadow-[0_5px_0_#065f46] flex items-center justify-center gap-2 text-lg">
+                <span>Move Right</span>
+                <i class="fa-solid fa-arrow-right text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Caught Salad Ingredients Shelf (Visual Progress Tracker of all 15 Nouns) -->
+        <div class="bg-white/90 rounded-2xl p-3 border-2 border-green-100 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    <i class="fa-solid fa-basket-shopping mr-1"></i> Your Bowl Salad Recipe Collection (15 Nouns)
+                </span>
+                <span id="collection-count-label" class="text-xs font-bold text-slate-500">0 of 15 collected</span>
+            </div>
+            <div id="recipe-shelf" class="flex flex-wrap gap-1.5">
+                <!-- 15 slots rendered via JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Restart Confirmation Modal (No browser confirm() used) -->
+    <div id="restart-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border-4 border-amber-300 animate-pop">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
+                🔄
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800 mb-2">Empty the Salad Bowl?</h3>
+            <p class="text-slate-600 mb-6">
+                Would you like to restart the game and catch all 15 salad nouns from the beginning?
+            </p>
+            <div class="flex gap-3 justify-center">
+                <button onclick="closeRestartModal()"
+                        class="btn-3d flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 rounded-2xl shadow-[0_4px_0_#94a3b8]">
+                    Keep Playing
+                </button>
+                <button onclick="confirmRestart()"
+                        class="btn-3d flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 rounded-2xl shadow-[0_4px_0_#be123c]">
+                    Yes, Restart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Badge & Certificate Modal -->
+    <div id="completion-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-8 shadow-2xl border-4 border-amber-400 animate-pop my-auto">
+
+            <!-- Printable Certificate Area -->
+            <div id="certificate-printable" class="bg-gradient-to-b from-green-50 via-white to-amber-50 border-4 border-double border-green-600 rounded-2xl p-5 sm:p-8 text-center relative overflow-hidden">
+
+                <!-- Decorative Corner Salad Emojis -->
+                <div class="absolute top-3 left-3 text-2xl opacity-80">🥬</div>
+                <div class="absolute top-3 right-3 text-2xl opacity-80">🍅</div>
+                <div class="absolute bottom-3 left-3 text-2xl opacity-80">🥒</div>
+                <div class="absolute bottom-3 right-3 text-2xl opacity-80">🥕</div>
+
+                <!-- Custom SVG Completion Badge -->
+                <div class="mx-auto w-28 h-28 mb-3 flex items-center justify-center">
+                    <svg viewBox="0 0 140 140" class="w-full h-full drop-shadow-md">
+                        <polygon points="70,5 86,22 110,16 116,40 136,54 128,77 136,100 116,114 110,136 86,130 70,140 54,130 30,136 24,114 4,100 12,77 4,54 24,40 30,16 54,22" fill="#f59e0b" />
+                        <circle cx="70" cy="72" r="50" fill="#16a34a" stroke="#ffffff" stroke-width="4" />
+                        <circle cx="70" cy="72" r="42" fill="#dcfce7" />
+                        <!-- Salad Bowl Illustration inside Badge -->
+                        <path d="M40,74 Q40,102 70,102 Q100,102 100,74 Z" fill="#ea580c" />
+                        <circle cx="55" cy="68" r="10" fill="#22c55e" />
+                        <circle cx="72" cy="65" r="11" fill="#15803d" />
+                        <circle cx="85" cy="69" r="9" fill="#4ade80" />
+                        <circle cx="63" cy="71" r="6" fill="#ef4444" />
+                        <circle cx="79" cy="72" r="5" fill="#facc15" />
+                        <text x="70" y="46" text-anchor="middle" font-size="16">⭐</text>
+                    </svg>
+                </div>
+
+                <span class="inline-block bg-amber-400 text-amber-950 font-bold text-xs uppercase tracking-widest px-3 py-1 rounded-full mb-2">
+                    Official Completion Badge & Certificate
+                </span>
+
+                <h2 class="text-2xl sm:text-3xl font-bold text-green-800 mb-1">
+                    Master Salad Noun Chef!
+                </h2>
+                <p class="text-slate-600 text-sm mb-3">This certificate is proudly awarded to</p>
+
+                <!-- Editable Student Name on Certificate -->
+                <div class="max-w-md mx-auto mb-4">
+                    <input type="text" id="cert-student-name" value="Super Year 6 Chef"
+                           aria-label="Student Name on Certificate"
+                           class="w-full text-center text-2xl sm:text-3xl font-bold text-emerald-700 bg-white/80 border-b-2 border-dashed border-emerald-500 focus:border-solid focus:outline-none py-1 px-2 rounded-t-lg"
+                           oninput="syncStudentName(this.value)">
+                    <p class="text-[11px] text-slate-400 mt-1 no-print">(Tap name above to type your name before printing)</p>
+                </div>
+
+                <p class="text-slate-700 text-sm sm:text-base max-w-lg mx-auto mb-5 leading-relaxed">
+                    For successfully identifying and catching all <strong>15 Salad Nouns</strong> in the <strong>Year 6 English: Making a Bowl Salad</strong> Arcade Game!
+                </p>
+
+                <!-- Score & Date Summary -->
+                <div class="flex flex-wrap justify-center gap-4 text-sm font-bold text-slate-700 bg-white/90 py-3 px-4 rounded-xl border border-green-200 max-w-md mx-auto">
+                    <div class="flex items-center gap-1.5 text-amber-600">
+                        <i class="fa-solid fa-star"></i>
+                        <span>Final Score: <span id="cert-score">150</span> pts</span>
+                    </div>
+                    <div class="text-slate-300">|</div>
+                    <div class="flex items-center gap-1.5 text-green-700">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <span id="cert-date">Date</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="mt-5 flex flex-wrap gap-3 justify-center no-print">
+                <button onclick="downloadCertificatePNG()"
+                        class="btn-3d bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold py-3 px-5 rounded-2xl shadow-[0_4px_0_#b45309] flex items-center gap-2">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Certificate</span>
+                </button>
+                <button onclick="window.print()"
+                        class="btn-3d bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-5 rounded-2xl shadow-[0_4px_0_#065f46] flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print Certificate</span>
+                </button>
+                <button onclick="confirmRestart()"
+                        class="btn-3d bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-5 rounded-2xl shadow-[0_4px_0_#0369a1] flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Play Again</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * YEAR 6 ENGLISH: MAKING A BOWL SALAD (NOUNS) - 15 GAME ROUNDS
+         * ============================================================================
+         * Each round challenges the student to identify and catch the exact concrete
+         * NOUN (ingredient or kitchen utensil) described by the recipe order, while
+         * dodging distractors (verbs, adjectives, or wrong nouns) with clear grammar
+         * explanations when caught!
+         */
+        const SALAD_MISSIONS = [
+            {
+                id: 1,
+                target: { word: "BOWL", emoji: "🥣" },
+                clue: "Catch the deep round NOUN used to hold and mix all our salad!",
+                distractors: [
+                    { word: "STIRRING", emoji: "🥄", reason: "'Stirring' is a VERB (an action word), not a noun!" },
+                    { word: "CRUNCHY", emoji: "✨", reason: "'Crunchy' is an ADJECTIVE (a describing word), not a noun!" },
+                    { word: "HAMMER", emoji: "🔨", reason: "'Hammer' is a noun, but we don't use it to make salad!" }
+                ]
+            },
+            {
+                id: 2,
+                target: { word: "LETTUCE", emoji: "🥬" },
+                clue: "Catch the crisp green leafy NOUN that forms the base of a salad!",
+                distractors: [
+                    { word: "WASHING", emoji: "💧", reason: "'Washing' is a VERB (an action), not a noun!" },
+                    { word: "FRESH", emoji: "🌿", reason: "'Fresh' is an ADJECTIVE describing the leaves!" },
+                    { word: "CHOP", emoji: "🔪", reason: "'Chop' is a VERB (an action word)!" }
+                ]
+            },
+            {
+                id: 3,
+                target: { word: "TOMATO", emoji: "🍅" },
+                clue: "Catch the juicy red fruit NOUN sliced into wedges for our salad!",
+                distractors: [
+                    { word: "JUICY", emoji: "💦", reason: "'Juicy' is an ADJECTIVE (describing word), not a noun!" },
+                    { word: "SLICING", emoji: "🔪", reason: "'Slicing' is a VERB (action word), not a noun!" },
+                    { word: "BRIGHT", emoji: "☀️", reason: "'Bright' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 4,
+                target: { word: "CUCUMBER", emoji: "🥒" },
+                clue: "Catch the long, cool green vegetable NOUN cut into round slices!",
+                distractors: [
+                    { word: "PEELING", emoji: "✨", reason: "'Peeling' is a VERB (an action), not a noun!" },
+                    { word: "COOL", emoji: "❄️", reason: "'Cool' is an ADJECTIVE, not a noun!" },
+                    { word: "PENCIL", emoji: "✏️", reason: "'Pencil' is a classroom noun, not a salad ingredient!" }
+                ]
+            },
+            {
+                id: 5,
+                target: { word: "CARROT", emoji: "🥕" },
+                clue: "Catch the crunchy orange root vegetable NOUN that we grate on top!",
+                distractors: [
+                    { word: "GRATING", emoji: "🧀", reason: "'Grating' is a VERB (an action word), not a noun!" },
+                    { word: "ORANGE", emoji: "🎨", reason: "Here 'Orange' is an ADJECTIVE describing colour!" },
+                    { word: "SWEET", emoji: "🍬", reason: "'Sweet' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 6,
+                target: { word: "ONION", emoji: "🧅" },
+                clue: "Catch the purple bulb NOUN with layers that adds strong flavour!",
+                distractors: [
+                    { word: "CRYING", emoji: "😢", reason: "'Crying' is a VERB (an action word), not a noun!" },
+                    { word: "SHARP", emoji: "⚡", reason: "'Sharp' is an ADJECTIVE, not a noun!" },
+                    { word: "DICE", emoji: "🎲", reason: "'Dice' here is a VERB meaning to cut into small cubes!" }
+                ]
+            },
+            {
+                id: 7,
+                target: { word: "SPINACH", emoji: "🍃" },
+                clue: "Catch the dark green leaf NOUN packed with vitamins!",
+                distractors: [
+                    { word: "HEALTHY", emoji: "💪", reason: "'Healthy' is an ADJECTIVE (describing word)!" },
+                    { word: "GROWING", emoji: "🌱", reason: "'Growing' is a VERB (action word)!" },
+                    { word: "LEAFY", emoji: "🌿", reason: "'Leafy' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 8,
+                target: { word: "AVOCADO", emoji: "🥑" },
+                clue: "Catch the creamy green fruit NOUN with a big round seed inside!",
+                distractors: [
+                    { word: "CREAMY", emoji: "🍦", reason: "'Creamy' is an ADJECTIVE (describing word)!" },
+                    { word: "SCOOPING", emoji: "🥄", reason: "'Scooping' is a VERB (action word)!" },
+                    { word: "SOFT", emoji: "☁️", reason: "'Soft' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 9,
+                target: { word: "SWEETCORN", emoji: "🌽" },
+                clue: "Catch the tiny yellow kernel NOUN that adds a pop of sweetness!",
+                distractors: [
+                    { word: "SPRINKLE", emoji: "✨", reason: "'Sprinkle' is a VERB (an action word)!" },
+                    { word: "YELLOW", emoji: "🌟", reason: "'Yellow' is an ADJECTIVE (colour word)!" },
+                    { word: "TASTY", emoji: "😋", reason: "'Tasty' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 10,
+                target: { word: "OLIVES", emoji: "🫒" },
+                clue: "Catch the plural NOUN for small green or black Mediterranean fruits!",
+                distractors: [
+                    { word: "SALTY", emoji: "🧂", reason: "'Salty' is an ADJECTIVE (describing taste)!" },
+                    { word: "PICKING", emoji: "🤏", reason: "'Picking' is a VERB (action word)!" },
+                    { word: "ROUND", emoji: "⭕", reason: "'Round' is an ADJECTIVE (describing shape)!" }
+                ]
+            },
+            {
+                id: 11,
+                target: { word: "CHEESE", emoji: "🧀" },
+                clue: "Catch the dairy NOUN (like cheddar or feta) cut into tasty cubes!",
+                distractors: [
+                    { word: "GRATED", emoji: "✨", reason: "'Grated' is an ADJECTIVE here, not a noun!" },
+                    { word: "MELTING", emoji: "🔥", reason: "'Melting' is a VERB (action word)!" },
+                    { word: "DELICIOUS", emoji: "😍", reason: "'Delicious' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 12,
+                target: { word: "LEMON", emoji: "🍋" },
+                clue: "Catch the yellow citrus fruit NOUN squeezed for tangy juice!",
+                distractors: [
+                    { word: "SQUEEZE", emoji: "✊", reason: "'Squeeze' is a VERB (an action word)!" },
+                    { word: "SOUR", emoji: "😖", reason: "'Sour' is an ADJECTIVE (describing taste)!" },
+                    { word: "ZESTY", emoji: "⚡", reason: "'Zesty' is an ADJECTIVE, not a noun!" }
+                ]
+            },
+            {
+                id: 13,
+                target: { word: "DRESSING", emoji: "🫗" },
+                clue: "Catch the liquid sauce NOUN poured over the salad for extra flavour!",
+                distractors: [
+                    { word: "POURING", emoji: "💧", reason: "'Pouring' is a VERB (an action word)!" },
+                    { word: "TANGY", emoji: "🍋", reason: "'Tangy' is an ADJECTIVE (describing word)!" },
+                    { word: "MIX", emoji: "🔄", reason: "'Mix' is a VERB (an action word)!" }
+                ]
+            },
+            {
+                id: 14,
+                target: { word: "TONGS", emoji: "🥢" },
+                clue: "Catch the kitchen utensil NOUN used to grip and serve the salad!",
+                distractors: [
+                    { word: "SERVING", emoji: "🍽️", reason: "'Serving' is a VERB (an action word)!" },
+                    { word: "SHINY", emoji: "✨", reason: "'Shiny' is an ADJECTIVE, not a noun!" },
+                    { word: "TOSSING", emoji: "🙌", reason: "'Tossing' is a VERB (an action word)!" }
+                ]
+            },
+            {
+                id: 15,
+                target: { word: "CHEF", emoji: "👨‍🍳" },
+                clue: "Catch the person NOUN who prepared this amazing bowl salad — YOU!",
+                distractors: [
+                    { word: "COOKING", emoji: "🍳", reason: "'Cooking' is a VERB (an action word)!" },
+                    { word: "CLEVER", emoji: "🧠", reason: "'Clever' is an ADJECTIVE (describing word)!" },
+                    { word: "PROUD", emoji: "🌟", reason: "'Proud' is an ADJECTIVE, not a noun!" }
+                ]
+            }
+        ];
+
+        // ============================================================================
+        // GAME ENGINE STATE
+        // ============================================================================
+        let currentRoundIndex = 0; // 0 to 14
+        let score = 0;
+        let streak = 0;
+        let isGameRunning = false;
+        let isCalmSpeed = true; // Default to Calm Speed for SEN accessibility
+        let soundEnabled = true;
+        let studentName = "";
+
+        // Bowl Position & Movement State (percentage 10% to 90%)
+        let bowlXPercent = 50;
+        let keysPressed = { left: false, right: false };
+        let buttonMoveDir = 0;
+
+        // Falling Items & Loop Timers
+        let fallingEntities = [];
+        let animationFrameId = null;
+        let lastFrameTime = 0;
+        let spawnTimer = 0;
+        let spawnQueue = [];
+
+        // ============================================================================
+        // AUDIO ENGINE (Tone.js + SpeechSynthesis for SEN Accessibility)
+        // ============================================================================
+        let synth = null;
+
+        function initAudio() {
+            if (!synth && typeof Tone !== "undefined") {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -8;
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                if (!synth) return;
+                if (Tone.context.state !== "running") {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (type === "catch") {
+                    synth.triggerAttackRelease(["C5", "E5", "G5"], "16n", now);
+                } else if (type === "wrong") {
+                    synth.triggerAttackRelease(["E3", "Eb3"], "8n", now);
+                } else if (type === "win") {
+                    synth.triggerAttackRelease("C5", "8n", now);
+                    synth.triggerAttackRelease("E5", "8n", now + 0.12);
+                    synth.triggerAttackRelease("G5", "8n", now + 0.24);
+                    synth.triggerAttackRelease(["C6", "E6"], "4n", now + 0.36);
+                }
+            } catch (e) {
+                // Ignore audio errors if blocked by browser policy
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById("sound-icon");
+            icon.className = soundEnabled
+                ? "fa-solid fa-volume-high text-base"
+                : "fa-solid fa-volume-xmark text-base text-rose-200";
+            showFeedback(soundEnabled ? "🔊" : "🔇", soundEnabled ? "Sound effects turned ON." : "Sound effects turned OFF.");
+        }
+
+        function toggleCalmMode() {
+            isCalmSpeed = !isCalmSpeed;
+            const label = document.getElementById("speed-label");
+            const btn = document.getElementById("speed-toggle-btn");
+            if (isCalmSpeed) {
+                label.textContent = "Calm Speed";
+                btn.classList.replace("bg-amber-500", "bg-sky-500");
+                btn.classList.replace("hover:bg-amber-600", "hover:bg-sky-600");
+                showFeedback("🐢", "Calm Speed ON: Ingredients fall gently for easy reading!");
+            } else {
+                label.textContent = "Chef Speed";
+                btn.classList.replace("bg-sky-500", "bg-amber-500");
+                btn.classList.replace("hover:bg-sky-600", "hover:bg-amber-600");
+                showFeedback("⚡", "Chef Speed ON: Faster falling ingredients!");
+            }
+        }
+
+        function speakMissionClue() {
+            const mission = SALAD_MISSIONS[currentRoundIndex];
+            if (!mission) return;
+            if ("speechSynthesis" in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(`Order ${mission.id}. ${mission.clue}`);
+                utter.rate = 0.92;
+                utter.pitch = 1.05;
+                window.speechSynthesis.speak(utter);
+                showFeedback("🗣️", `Reading Order #${mission.id} aloud...`);
+            }
+        }
+
+        // ============================================================================
+        // RECIPE SHELF & UI INITIALIZATION
+        // ============================================================================
+        function renderRecipeShelf() {
+            const shelf = document.getElementById("recipe-shelf");
+            shelf.innerHTML = "";
+            SALAD_MISSIONS.forEach((m, idx) => {
+                const isCollected = idx < currentRoundIndex;
+                const isCurrent = idx === currentRoundIndex && isGameRunning;
+                const badge = document.createElement("div");
+                badge.className = `px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1 border transition-all ${
+                    isCollected
+                        ? "bg-emerald-100 border-emerald-400 text-emerald-900"
+                        : isCurrent
+                        ? "bg-amber-200 border-amber-500 text-amber-950 scale-105 shadow-xs"
+                        : "bg-slate-100 border-slate-200 text-slate-400"
+                }`;
+                badge.innerHTML = isCollected
+                    ? `<span>${m.target.emoji}</span><span>${m.target.word}</span>`
+                    : `<span>${idx + 1}.</span><span>???</span>`;
+                shelf.appendChild(badge);
+            });
+            document.getElementById("collection-count-label").textContent =
+                `${currentRoundIndex} of ${SALAD_MISSIONS.length} collected`;
+        }
+
+        function updateMissionBanner() {
+            const mission = SALAD_MISSIONS[currentRoundIndex];
+            if (!mission) return;
+            document.getElementById("mission-number").textContent = `#${mission.id}`;
+            document.getElementById("mission-clue-text").textContent = mission.clue;
+            document.getElementById("round-display").textContent = mission.id;
+        }
+
+        function updateScoreAndProgress() {
+            document.getElementById("score-display").textContent = score;
+            const pct = Math.round((currentRoundIndex / SALAD_MISSIONS.length) * 100);
+            document.getElementById("progress-bar").style.width = `${pct}%`;
+
+            const streakBadge = document.getElementById("streak-badge");
+            if (streak >= 2) {
+                streakBadge.classList.remove("hidden");
+                document.getElementById("streak-count").textContent = streak;
+            } else {
+                streakBadge.classList.add("hidden");
+            }
+        }
+
+        function showFeedback(emoji, text, type = "neutral") {
+            const banner = document.getElementById("feedback-banner");
+            document.getElementById("feedback-emoji").textContent = emoji;
+            document.getElementById("feedback-text").textContent = text;
+
+            banner.classList.remove("border-emerald-400", "bg-emerald-50", "border-rose-400", "bg-rose-50", "border-emerald-200");
+            if (type === "success") {
+                banner.classList.add("border-emerald-400", "bg-emerald-50");
+            } else if (type === "error") {
+                banner.classList.add("border-rose-400", "bg-rose-50");
+            } else {
+                banner.classList.add("border-emerald-200");
+            }
+        }
+
+        // ============================================================================
+        // GAME LOOP & FALLING ITEM SPAWNER
+        // ============================================================================
+        function startGame() {
+            document.getElementById("start-overlay").classList.add("hidden");
+            currentRoundIndex = 0;
+            score = 0;
+            streak = 0;
+            bowlXPercent = 50;
+            document.getElementById("bowl-pile").innerHTML = "";
+            document.getElementById("caught-emojis-strip").textContent = "🥗";
+
+            clearFallingEntities();
+            isGameRunning = true;
+            updateMissionBanner();
+            updateScoreAndProgress();
+            renderRecipeShelf();
+            prepareSpawnQueueForRound();
+
+            showFeedback("🎯", "Catch the matching Salad Noun in your bowl! Dodge verbs and adjectives!");
+            lastFrameTime = performance.now();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function prepareSpawnQueueForRound() {
+            const mission = SALAD_MISSIONS[currentRoundIndex];
+            if (!mission) return;
+
+            // Create a balanced shuffled wave containing the target noun and 2-3 distractors
+            const wave = [
+                {
+                    word: mission.target.word,
+                    emoji: mission.target.emoji,
+                    isTarget: true,
+                    reason: ""
+                },
+                ...mission.distractors.map(d => ({
+                    word: d.word,
+                    emoji: d.emoji,
+                    isTarget: false,
+                    reason: d.reason
+                }))
+            ];
+
+            // Fisher-Yates shuffle
+            for (let i = wave.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [wave[i], wave[j]] = [wave[j], wave[i]];
+            }
+            spawnQueue = wave;
+            spawnTimer = 0.2; // Spawn first item almost immediately
+        }
+
+        function spawnNextItem() {
+            if (spawnQueue.length === 0) {
+                prepareSpawnQueueForRound();
+            }
+            const nextData = spawnQueue.pop();
+            const arena = document.getElementById("game-arena");
+            const arenaWidth = arena.clientWidth;
+
+            // Choose an X lane that doesn't overlap existing high items
+            let xPercent = 16 + Math.random() * 68;
+            for (let attempt = 0; attempt < 6; attempt++) {
+                const candidate = 15 + Math.random() * 70;
+                const tooClose = fallingEntities.some(
+                    ent => ent.y < 140 && Math.abs(ent.xPercent - candidate) < 22
+                );
+                if (!tooClose) {
+                    xPercent = candidate;
+                    break;
+                }
+            }
+
+            const el = document.createElement("div");
+            el.className = "falling-item";
+            // Neutral, clean styling so students read the word rather than just guessing by border color
+            el.style.borderColor = "#0f172a";
+            el.innerHTML = `
+                <span class="text-2xl sm:text-3xl leading-none mb-1">${nextData.emoji}</span>
+                <span class="font-extrabold text-xs sm:text-sm tracking-wide text-slate-900 bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300">
+                    ${nextData.word}
+                </span>
+            `;
+
+            const startX = (xPercent / 100) * arenaWidth;
+            el.style.left = `${startX}px`;
+            el.style.top = `-35px`;
+            arena.appendChild(el);
+
+            fallingEntities.push({
+                el,
+                xPercent,
+                y: -35,
+                speed: isCalmSpeed ? 85 + Math.random() * 20 : 145 + Math.random() * 30,
+                data: nextData
+            });
+        }
+
+        function gameLoop(timestamp) {
+            if (!isGameRunning) return;
+
+            const dt = Math.min((timestamp - lastFrameTime) / 1000, 0.05);
+            lastFrameTime = timestamp;
+
+            const arena = document.getElementById("game-arena");
+            const arenaWidth = arena.clientWidth;
+            const arenaHeight = arena.clientHeight;
+
+            // 1. Update Bowl Position via Keyboard or On-Screen Buttons
+            const moveDir = (keysPressed.right ? 1 : 0) - (keysPressed.left ? 1 : 0) + buttonMoveDir;
+            if (moveDir !== 0) {
+                const bowlSpeedPercent = 68; // % per second
+                bowlXPercent = Math.max(11, Math.min(89, bowlXPercent + moveDir * bowlSpeedPercent * dt));
+                updateBowlDOM();
+            }
+
+            // 2. Spawn Timer
+            spawnTimer -= dt;
+            const spawnInterval = isCalmSpeed ? 1.85 : 1.25;
+            if (spawnTimer <= 0) {
+                spawnNextItem();
+                spawnTimer = spawnInterval;
+            }
+
+            // 3. Move Falling Items & Check Bowl Collision
+            const bowlPixelX = (bowlXPercent / 100) * arenaWidth;
+            const bowlTopY = arenaHeight - 102;
+            const bowlBottomY = arenaHeight - 25;
+            const catchRadiusX = arenaWidth < 640 ? 68 : 82;
+
+            for (let i = fallingEntities.length - 1; i >= 0; i--) {
+                const item = fallingEntities[i];
+                if (!item) continue;
+                item.y += item.speed * dt;
+                const itemPixelX = (item.xPercent / 100) * arenaWidth;
+
+                item.el.style.left = `${itemPixelX}px`;
+                item.el.style.top = `${item.y}px`;
+
+                // Check if caught inside the bowl rim
+                const caughtVertically = item.y >= bowlTopY && item.y <= bowlBottomY;
+                const caughtHorizontally = Math.abs(itemPixelX - bowlPixelX) <= catchRadiusX;
+
+                if (caughtVertically && caughtHorizontally) {
+                    const waveCleared = handleItemCaught(item, itemPixelX, bowlTopY);
+                    if (waveCleared) {
+                        break;
+                    }
+                    item.el.remove();
+                    fallingEntities.splice(i, 1);
+                    continue;
+                }
+
+                // Remove if fallen off bottom
+                if (item.y > arenaHeight + 45) {
+                    item.el.remove();
+                    fallingEntities.splice(i, 1);
+                }
+            }
+
+            if (isGameRunning) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function handleItemCaught(item, x, y) {
+            const bowlEl = document.getElementById("player-bowl");
+
+            if (item.data.isTarget) {
+                // CORRECT NOUN CAUGHT!
+                playSound("catch");
+                streak++;
+                const bonus = streak >= 3 ? 5 : 0;
+                const pointsEarned = 10 + bonus;
+                score += pointsEarned;
+
+                bowlEl.classList.remove("bowl-bounce", "bowl-shake");
+                void bowlEl.offsetWidth;
+                bowlEl.classList.add("bowl-bounce");
+
+                spawnFloatingPopup(x, y, `+${pointsEarned} 🌟`, "#15803d");
+
+                // Add ingredient emoji to bowl pile & header strip
+                const pile = document.getElementById("bowl-pile");
+                if (pile.children.length < 7) {
+                    const span = document.createElement("span");
+                    span.textContent = item.data.emoji;
+                    pile.appendChild(span);
+                }
+                const strip = document.getElementById("caught-emojis-strip");
+                strip.textContent += item.data.emoji;
+
+                showFeedback(
+                    "🎉",
+                    `Brilliant! "${item.data.word}" ${item.data.emoji} is a NOUN! (+${pointsEarned} pts)`,
+                    "success"
+                );
+
+                // Clear current wave and advance to next noun
+                clearFallingEntities();
+                currentRoundIndex++;
+                updateScoreAndProgress();
+                renderRecipeShelf();
+
+                if (currentRoundIndex >= SALAD_MISSIONS.length) {
+                    isGameRunning = false;
+                    setTimeout(triggerCompletionCelebration, 650);
+                } else {
+                    updateMissionBanner();
+                    prepareSpawnQueueForRound();
+                }
+                return true;
+            } else {
+                // INCORRECT WORD CAUGHT (Verb / Adjective / Wrong Noun)
+                playSound("wrong");
+                streak = 0;
+                score = Math.max(0, score - 2);
+                updateScoreAndProgress();
+
+                bowlEl.classList.remove("bowl-bounce", "bowl-shake");
+                void bowlEl.offsetWidth;
+                bowlEl.classList.add("bowl-shake");
+
+                spawnFloatingPopup(x, y, "Oops! -2", "#dc2626");
+                showFeedback(
+                    "🤔",
+                    `Not quite! ${item.data.reason} Keep looking for the salad noun!`,
+                    "error"
+                );
+                return false;
+            }
+        }
+
+        function spawnFloatingPopup(x, y, text, color) {
+            const arena = document.getElementById("game-arena");
+            const pop = document.createElement("div");
+            pop.className = "floating-popup";
+            pop.style.left = `${x}px`;
+            pop.style.top = `${y - 15}px`;
+            pop.style.color = color;
+            pop.textContent = text;
+            arena.appendChild(pop);
+            setTimeout(() => pop.remove(), 900);
+        }
+
+        function clearFallingEntities() {
+            fallingEntities.forEach(ent => ent.el.remove());
+            fallingEntities = [];
+        }
+
+        function updateBowlDOM() {
+            const bowlEl = document.getElementById("player-bowl");
+            bowlEl.style.left = `${bowlXPercent}%`;
+        }
+
+        // ============================================================================
+        // PLAYER CONTROLS (Mouse, Touch Drag, Keyboard Arrows, On-Screen Buttons)
+        // ============================================================================
+        const arenaEl = document.getElementById("game-arena");
+
+        function moveBowlFromClientX(clientX) {
+            if (!isGameRunning) return;
+            const rect = arenaEl.getBoundingClientRect();
+            const relX = clientX - rect.left;
+            const pct = (relX / rect.width) * 100;
+            bowlXPercent = Math.max(11, Math.min(89, pct));
+            updateBowlDOM();
+        }
+
+        arenaEl.addEventListener("mousemove", (e) => {
+            moveBowlFromClientX(e.clientX);
+        });
+
+        arenaEl.addEventListener("touchmove", (e) => {
+            if (e.touches.length > 0) {
+                moveBowlFromClientX(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        arenaEl.addEventListener("touchstart", (e) => {
+            if (e.touches.length > 0) {
+                moveBowlFromClientX(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        window.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                keysPressed.left = true;
+            } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                keysPressed.right = true;
+            }
+        });
+
+        window.addEventListener("keyup", (e) => {
+            if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+                keysPressed.left = false;
+            } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+                keysPressed.right = false;
+            }
+        });
+
+        function startButtonMove(dir) {
+            buttonMoveDir = dir;
+        }
+
+        function stopButtonMove() {
+            buttonMoveDir = 0;
+        }
+
+        // ============================================================================
+        // COMPLETION BADGE, CERTIFICATE & RESTART CONTROLS
+        // ============================================================================
+        function downloadCertificatePNG() {
+            try {
+                const nameInput = document.getElementById("cert-student-name");
+                const chefName = (nameInput && nameInput.value.trim()) || studentName.trim() || "Super Year 6 Chef";
+                const scoreText = document.getElementById("cert-score").textContent || String(score);
+                const dateText = document.getElementById("cert-date").textContent || new Date().toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                });
+
+                const canvas = document.createElement("canvas");
+                canvas.width = 1200;
+                canvas.height = 840;
+                const ctx = canvas.getContext("2d");
+
+                // Soft celebratory background
+                const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                bgGrad.addColorStop(0, "#f0fdf4");
+                bgGrad.addColorStop(0.5, "#ffffff");
+                bgGrad.addColorStop(1, "#fef9c3");
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Double border frame
+                ctx.strokeStyle = "#16a34a";
+                ctx.lineWidth = 10;
+                ctx.strokeRect(36, 36, canvas.width - 72, canvas.height - 72);
+
+                ctx.strokeStyle = "#f59e0b";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(54, 54, canvas.width - 108, canvas.height - 108);
+
+                // Corner salad emojis
+                ctx.font = "54px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("🥬", 105, 105);
+                ctx.fillText("🍅", canvas.width - 105, 105);
+                ctx.fillText("🥒", 105, canvas.height - 105);
+                ctx.fillText("🥕", canvas.width - 105, canvas.height - 105);
+
+                // Badge circle
+                ctx.fillStyle = "#dcfce7";
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, 165, 62, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = "#f59e0b";
+                ctx.stroke();
+
+                ctx.font = "62px sans-serif";
+                ctx.fillText("🏆", canvas.width / 2, 168);
+
+                // Header pill label
+                ctx.fillStyle = "#15803d";
+                ctx.font = "bold 20px Lexend, sans-serif";
+                ctx.fillText("OFFICIAL COMPLETION BADGE & CERTIFICATE", canvas.width / 2, 255);
+
+                // Main title
+                ctx.fillStyle = "#14532d";
+                ctx.font = "bold 54px Fredoka, sans-serif";
+                ctx.fillText("Master Salad Noun Chef!", canvas.width / 2, 320);
+
+                ctx.fillStyle = "#475569";
+                ctx.font = "24px Lexend, sans-serif";
+                ctx.fillText("This certificate is proudly awarded to", canvas.width / 2, 375);
+
+                // Student name
+                ctx.fillStyle = "#047857";
+                ctx.font = "bold 52px Fredoka, sans-serif";
+                ctx.fillText(chefName, canvas.width / 2, 445);
+
+                // Underline under student name
+                ctx.strokeStyle = "#10b981";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2 - 280, 482);
+                ctx.lineTo(canvas.width / 2 + 280, 482);
+                ctx.stroke();
+
+                // Achievement description
+                ctx.fillStyle = "#1e293b";
+                ctx.font = "24px Lexend, sans-serif";
+                ctx.fillText("For catching all 15 Salad Nouns in the Year 6 English:", canvas.width / 2, 540);
+                ctx.font = "bold 26px Lexend, sans-serif";
+                ctx.fillText("Making a Bowl Salad — Noun Catcher Game", canvas.width / 2, 578);
+
+                // Score & Date summary box
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(canvas.width / 2 - 310, 625, 620, 74);
+                ctx.strokeStyle = "#86efac";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(canvas.width / 2 - 310, 625, 620, 74);
+
+                ctx.fillStyle = "#d97706";
+                ctx.font = "bold 24px Lexend, sans-serif";
+                ctx.textAlign = "left";
+                ctx.fillText(`⭐ Final Score: ${scoreText} pts`, canvas.width / 2 - 280, 663);
+
+                ctx.fillStyle = "#15803d";
+                ctx.textAlign = "right";
+                ctx.fillText(`📅 ${dateText}`, canvas.width / 2 + 280, 663);
+
+                // Trigger PNG download
+                const dataUrl = canvas.toDataURL("image/png");
+                const link = document.createElement("a");
+                const safeFileName = chefName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "salad-chef";
+                link.download = `${safeFileName}-salad-noun-certificate.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showFeedback("📥", `Certificate downloaded for ${chefName}!`, "success");
+            } catch (err) {
+                showFeedback("⚠️", "Could not download automatically here. Try using Print Certificate!", "error");
+            }
+        }
+
+        function syncStudentName(val) {
+            studentName = val;
+            const headerInput = document.getElementById("student-name-header");
+            const certInput = document.getElementById("cert-student-name");
+            if (headerInput && headerInput.value !== val) headerInput.value = val;
+            if (certInput && certInput.value !== val && val.trim() !== "") certInput.value = val;
+        }
+
+        function triggerCompletionCelebration() {
+            playSound("win");
+            showFeedback(
+                "🏆",
+                "Amazing! You caught all 15 Salad Nouns and earned your Master Salad Chef Certificate!",
+                "success"
+            );
+
+            const finalName = studentName.trim() || "Super Year 6 Chef";
+            document.getElementById("cert-student-name").value = finalName;
+            document.getElementById("cert-score").textContent = score;
+
+            const today = new Date();
+            document.getElementById("cert-date").textContent = today.toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+
+            const modal = document.getElementById("completion-modal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function openRestartModal() {
+            const modal = document.getElementById("restart-modal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeRestartModal() {
+            const modal = document.getElementById("restart-modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function confirmRestart() {
+            closeRestartModal();
+            const compModal = document.getElementById("completion-modal");
+            compModal.classList.add("hidden");
+            compModal.classList.remove("flex");
+            startGame();
+        }
+
+        // Initialize UI on Window Load
+        window.onload = function () {
+            renderRecipeShelf();
+            updateMissionBanner();
+            updateScoreAndProgress();
+        };
+    </script>
+</body>
+</html>
